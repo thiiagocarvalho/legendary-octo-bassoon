@@ -33,6 +33,12 @@ enum InvoiceStatus {
   VOID
 }
 
+enum ManualPaymentMethod {
+  PIX
+  CASH
+  CARD_IN_PERSON
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -76,6 +82,7 @@ model Enrollment {
   student   Student          @relation(fields: [studentId], references: [id])
   plan      Plan             @relation(fields: [planId], references: [id])
   invoices  Invoice[]
+  manualPayments ManualPayment[]
 }
 
 model Invoice {
@@ -85,11 +92,32 @@ model Invoice {
   dueDate      DateTime
   referenceMonth DateTime
   status       InvoiceStatus @default(PENDING)
-  checkoutUrl  String?
-  externalId   String?       @unique
   enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id])
+  paymentLinks ManualPaymentInvoice[]
   createdAt    DateTime      @default(now())
   @@unique([enrollmentId, referenceMonth])
+}
+
+model ManualPayment {
+  id            String              @id @default(cuid())
+  enrollmentId  String
+  method        ManualPaymentMethod
+  amountCents   Int
+  monthsCovered Int
+  receivedAt    DateTime
+  notes         String?
+  receivedBy    String
+  invoices      ManualPaymentInvoice[]
+  createdAt     DateTime            @default(now())
+  enrollment    Enrollment          @relation(fields: [enrollmentId], references: [id])
+}
+
+model ManualPaymentInvoice {
+  paymentId String
+  invoiceId String
+  payment   ManualPayment @relation(fields: [paymentId], references: [id])
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id])
+  @@id([paymentId, invoiceId])
 }
 
 model ClassSlot {
