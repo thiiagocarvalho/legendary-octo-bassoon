@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server';
+import { requireStudent } from '../../../../lib/auth';
+import { prisma } from '../../../../lib/db';
+export async function GET(){const user=await requireStudent();if(!user.studentId)return NextResponse.json({error:'Perfil de aluno não vinculado.'},{status:403});const student=await prisma.student.findUnique({where:{id:user.studentId},include:{enrollments:{where:{status:'ACTIVE'},include:{plan:true},orderBy:{startsAt:'desc'},take:1},bookings:{where:{occurrence:{startsAt:{lt:new Date()}}},include:{occurrence:true},orderBy:{occurrence:{startsAt:'desc'}},take:20}}});if(!student)return NextResponse.json({error:'Aluno não encontrado.'},{status:404});return NextResponse.json({fullName:student.fullName,plan:student.enrollments[0]?.plan??null,history:student.bookings});}

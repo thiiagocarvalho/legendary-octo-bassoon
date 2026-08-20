@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PENDING
+  OVERDUE
+  CANCELED
+}
+
+enum BookingStatus {
+  RESERVED
+  CANCELED
+  PRESENT
+  ABSENT
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  VOID
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  student      Student?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Student {
+  id          String               @id @default(cuid())
+  userId      String?              @unique
+  fullName    String
+  phone       String
+  birthDate   DateTime
+  user        User?                @relation(fields: [userId], references: [id])
+  health      HealthProfile?
+  healthHistory HealthProfileHistory[]
+  progress    FunctionalProgress[]
+  enrollments Enrollment[]
+  bookings    Booking[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model Plan {
+  id                 String       @id @default(cuid())
+  name               String
+  monthlyPriceCents  Int
+  weeklyBookingLimit Int          @default(2)
+  enrollments        Enrollment[]
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  studentId String
+  planId    String
+  status    EnrollmentStatus @default(PENDING)
+  startsAt  DateTime
+  student   Student          @relation(fields: [studentId], references: [id])
+  plan      Plan             @relation(fields: [planId], references: [id])
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  enrollmentId String
+  amountCents  Int
+  dueDate      DateTime
+  referenceMonth DateTime
+  status       InvoiceStatus @default(PENDING)
+  checkoutUrl  String?
+  externalId   String?       @unique
+  enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id])
+  createdAt    DateTime      @default(now())
+  @@unique([enrollmentId, referenceMonth])
+}
+
+model ClassSlot {
+  id         String            @id @default(cuid())
+  weekday    Int
+  startsTime String
+  duration   Int
+  capacity   Int
+  occurrences ClassOccurrence[]
+}
+
+model ClassOccurrence {
+  id          String      @id @default(cuid())
+  classSlotId String
+  startsAt    DateTime
+  endsAt      DateTime
+  classSlot   ClassSlot   @relation(fields: [classSlotId], references: [id])
+  bookings    Booking[]
+  @@unique([classSlotId, startsAt])
+}
+
+model Booking {
+  id           String          @id @default(cuid())
+  studentId    String
+  occurrenceId String
+  status       BookingStatus   @default(RESERVED)
+  student      Student         @relation(fields: [studentId], references: [id])
+  occurrence   ClassOccurrence @relation(fields: [occurrenceId], references: [id])
+  createdAt    DateTime        @default(now())
+  @@unique([studentId, occurrenceId])
+}
+
+model HealthProfile {
+  id           String   @id @default(cuid())
+  studentId    String   @unique
+  consentedAt  DateTime
+  restrictions String
+  goals        String?
+  observations String?
+  student      Student  @relation(fields: [studentId], references: [id])
+  updatedAt    DateTime @updatedAt
+}
+
+model HealthProfileHistory {
+  id           String   @id @default(cuid())
+  studentId    String
+  actorId      String
+  consentedAt  DateTime
+  restrictions String
+  goals        String?
+  observations String?
+  createdAt    DateTime @default(now())
+  student      Student  @relation(fields: [studentId], references: [id])
+}
+
+model FunctionalProgress {
+  id        String   @id @default(cuid())
+  studentId String
+  note      String
+  createdBy String
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  entity    String
+  entityId  String
+  reason    String?
+  createdAt DateTime @default(now())
+}
