@@ -43,3 +43,5 @@ pnpm db:deploy
 Cadastre no Mercado Pago o webhook HTTPS `https://seu-dominio.com/api/payments/webhook`. Configure o token de acesso e a assinatura de webhook nas variáveis de ambiente. O sistema cria uma preferência de Checkout Pro para cada fatura e só marca como paga após receber webhook assinado e pagamento aprovado. O Checkout Pro oferece Pix e cartão sem que o CRM armazene dados de cartão.
 
 Antes de publicar, defina `APP_URL` com o domínio HTTPS definitivo; URLs locais não recebem notificações de pagamento do Mercado Pago.
+
+Veja o guia completo de publicação em [docs/DEPLOY.md](docs/DEPLOY.md).
