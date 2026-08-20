@@ -15,6 +15,8 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
           <Link className="text-sm font-medium text-slate-700" href="/admin/alunos">Alunos</Link>
           <Link className="text-sm font-medium text-slate-700" href="/admin/turmas">Turmas</Link>
           <Link className="text-sm font-medium text-slate-700" href="/admin/agenda">Agenda</Link>
+          <Link className="text-sm font-medium text-slate-700" href="/admin/planos">Planos</Link>
+          <Link className="text-sm font-medium text-slate-700" href="/admin/financeiro">Financeiro</Link>
         </nav>
       </header>
       <main className="mx-auto max-w-6xl p-5 md:p-8">{children}</main>

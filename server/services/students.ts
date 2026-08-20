@@ -1,10 +1,17 @@
 import { prisma } from '../../lib/db';
+import bcrypt from 'bcryptjs';
 import { functionalProgressInput, healthProfileInput, studentInput } from '../../lib/validation/students';
 import { writeAuditLog } from './audit';
 
 export async function createStudent(input: unknown, actorId: string) {
   const data = studentInput.parse(input);
-  const student = await prisma.student.create({ data });
+  const { email, password, ...studentData } = data;
+  const student = await prisma.$transaction(async (tx) => {
+    const user = email && password ? await tx.user.create({
+      data: { email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 12), role: 'STUDENT' },
+    }) : null;
+    return tx.student.create({ data: { ...studentData, userId: user?.id } });
+  });
   await writeAuditLog({ actorId, action: 'STUDENT_CREATED', entity: 'Student', entityId: student.id });
   return student;
 }
