@@ -11,7 +11,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ cl
     const { classSlotId } = await params;
     const pair = dayPairInput.parse(await request.json());
     const slot = await prisma.classSlot.findUniqueOrThrow({ where: { id: classSlotId } });
-    if (![pair.weekday, pair.secondWeekday].includes(slot.weekday)) return NextResponse.json({ error: 'Escolha a combinação compatível com o primeiro dia da turma.' }, { status: 400 });
+    const pairWeekdays: number[] = [pair.weekday, pair.secondWeekday];
+    if (!pairWeekdays.includes(slot.weekday)) return NextResponse.json({ error: 'Escolha a combinação compatível com o primeiro dia da turma.' }, { status: 400 });
     const secondWeekday = slot.weekday === pair.weekday ? pair.secondWeekday : pair.weekday;
     await prisma.classSlot.update({ where: { id: classSlotId }, data: { secondWeekday } });
     return NextResponse.json(await materializeOccurrences(classSlotId));
