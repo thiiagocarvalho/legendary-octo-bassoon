@@ -22,7 +22,7 @@ export async function getDashboard(now = new Date()) {
     prisma.booking.findMany({ where: { occurrence: { startsAt: { gte: frequencyStart, lt: now } } }, select: { studentId: true, status: true } }),
   ]);
   const limit = new Date(now); limit.setDate(now.getDate() + 7);
-  const birthdays = students.filter((student) => { const birthday = new Date(now.getFullYear(), student.birthDate.getMonth(), student.birthDate.getDate()); return birthday >= now && birthday <= limit; });
+  const birthdays = students.filter((student) => { const birthday = new Date(now.getFullYear(), student.birthDate.getMonth(), student.birthDate.getDate()); return birthday >= now && birthday <= limit; }).map((student) => ({ id: student.id, fullName: student.fullName, birthDate: student.birthDate }));
   const activeStudents = activeEnrollments.length;
   const studentsWithWeeklyBooking = new Set(weeklyBookings.map((booking) => booking.studentId));
   const studentsWithoutBooking = activeEnrollments.filter((enrollment) => !studentsWithWeeklyBooking.has(enrollment.studentId)).map((enrollment) => ({ id: enrollment.student.id, fullName: enrollment.student.fullName }));
