@@ -19,6 +19,13 @@ enum EnrollmentStatus {
   CANCELED
 }
 
+enum BookingStatus {
+  RESERVED
+  CANCELED
+  PRESENT
+  ABSENT
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -38,8 +45,58 @@ model Student {
   user        User?                @relation(fields: [userId], references: [id])
   health      HealthProfile?
   progress    FunctionalProgress[]
+  enrollments Enrollment[]
+  bookings    Booking[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
+}
+
+model Plan {
+  id                 String       @id @default(cuid())
+  name               String
+  monthlyPriceCents  Int
+  weeklyBookingLimit Int          @default(2)
+  enrollments        Enrollment[]
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  studentId String
+  planId    String
+  status    EnrollmentStatus @default(PENDING)
+  startsAt  DateTime
+  student   Student          @relation(fields: [studentId], references: [id])
+  plan      Plan             @relation(fields: [planId], references: [id])
+}
+
+model ClassSlot {
+  id         String            @id @default(cuid())
+  weekday    Int
+  startsTime String
+  duration   Int
+  capacity   Int
+  occurrences ClassOccurrence[]
+}
+
+model ClassOccurrence {
+  id          String      @id @default(cuid())
+  classSlotId String
+  startsAt    DateTime
+  endsAt      DateTime
+  classSlot   ClassSlot   @relation(fields: [classSlotId], references: [id])
+  bookings    Booking[]
+  @@unique([classSlotId, startsAt])
+}
+
+model Booking {
+  id           String          @id @default(cuid())
+  studentId    String
+  occurrenceId String
+  status       BookingStatus   @default(RESERVED)
+  student      Student         @relation(fields: [studentId], references: [id])
+  occurrence   ClassOccurrence @relation(fields: [occurrenceId], references: [id])
+  createdAt    DateTime        @default(now())
+  @@unique([studentId, occurrenceId])
 }
 
 model HealthProfile {
