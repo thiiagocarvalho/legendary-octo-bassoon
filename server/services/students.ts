@@ -1,7 +1,8 @@
 import { prisma } from '../../lib/db';
 import bcrypt from 'bcryptjs';
-import { functionalProgressInput, healthProfileInput, studentInput } from '../../lib/validation/students';
+import { functionalProgressInput, healthProfileInput, studentInput, studentUpdateInput } from '../../lib/validation/students';
 import { writeAuditLog } from './audit';
+import { healthHistoryData } from './health-history';
 
 export async function createStudent(input: unknown, actorId: string) {
   const data = studentInput.parse(input);
@@ -16,12 +17,23 @@ export async function createStudent(input: unknown, actorId: string) {
   return student;
 }
 
+export async function updateStudent(studentId: string, input: unknown, actorId: string) {
+  const data = studentUpdateInput.parse(input);
+  const student = await prisma.student.update({ where: { id: studentId }, data });
+  await writeAuditLog({ actorId, action: 'STUDENT_UPDATED', entity: 'Student', entityId: student.id });
+  return student;
+}
+
 export async function upsertHealthProfile(studentId: string, input: unknown, actorId: string) {
   const data = healthProfileInput.parse(input);
-  const health = await prisma.healthProfile.upsert({
-    where: { studentId },
-    create: { studentId, ...data },
-    update: data,
+  const health = await prisma.$transaction(async (tx) => {
+    const profile = await tx.healthProfile.upsert({
+      where: { studentId },
+      create: { studentId, ...data },
+      update: data,
+    });
+    await tx.healthProfileHistory.create({ data: { studentId, ...healthHistoryData(data, actorId) } });
+    return profile;
   });
   await writeAuditLog({ actorId, action: 'HEALTH_PROFILE_UPDATED', entity: 'HealthProfile', entityId: health.id });
   return health;

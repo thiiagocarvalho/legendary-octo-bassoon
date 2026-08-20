@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/db';
+import { enrollmentStatusAfterApprovedPayment } from '../../../../server/services/enrollment-payment';
 
 function signatureIsValid(request: Request, paymentId: string) {
   const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
   const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!response.ok) return NextResponse.json({ error: 'Pagamento não encontrado.' }, { status: 404 });
   const payment = await response.json();
-  if (payment.status === 'approved' && payment.external_reference) await prisma.invoice.updateMany({ where: { id: payment.external_reference, status: { not: 'PAID' } }, data: { status: 'PAID' } });
+  if (payment.status === 'approved' && payment.external_reference) {
+    const invoice = await prisma.invoice.update({ where: { id: payment.external_reference }, data: { status: 'PAID' }, include: { enrollment: true } }).catch(() => null);
+    if (invoice) await prisma.enrollment.update({ where: { id: invoice.enrollmentId }, data: { status: enrollmentStatusAfterApprovedPayment(invoice.enrollment.status) as 'ACTIVE' | 'PENDING' | 'OVERDUE' | 'CANCELED' } });
+  }
   return NextResponse.json({ received: true });
 }

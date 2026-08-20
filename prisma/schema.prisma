@@ -51,6 +51,7 @@ model Student {
   birthDate   DateTime
   user        User?                @relation(fields: [userId], references: [id])
   health      HealthProfile?
+  healthHistory HealthProfileHistory[]
   progress    FunctionalProgress[]
   enrollments Enrollment[]
   bookings    Booking[]
@@ -130,6 +131,18 @@ model HealthProfile {
   observations String?
   student      Student  @relation(fields: [studentId], references: [id])
   updatedAt    DateTime @updatedAt
+}
+
+model HealthProfileHistory {
+  id           String   @id @default(cuid())
+  studentId    String
+  actorId      String
+  consentedAt  DateTime
+  restrictions String
+  goals        String?
+  observations String?
+  createdAt    DateTime @default(now())
+  student      Student  @relation(fields: [studentId], references: [id])
 }
 
 model FunctionalProgress {

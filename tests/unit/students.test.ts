@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { healthProfileInput } from '../../lib/validation/students';
+import { healthProfileInput, studentUpdateInput } from '../../lib/validation/students';
 
 describe('health profile validation', () => {
   it('requires explicit consent before storing restrictions', () => {
@@ -13,5 +13,15 @@ describe('health profile validation', () => {
       restrictions: 'Evitar flexão profunda.',
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe('student updates', () => {
+  it('accepts a partial update with a valid phone number', () => {
+    expect(studentUpdateInput.safeParse({ phone: '11999998888' }).success).toBe(true);
+  });
+
+  it('rejects an update without editable fields', () => {
+    expect(studentUpdateInput.safeParse({}).success).toBe(false);
   });
 });

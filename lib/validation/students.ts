@@ -11,6 +11,12 @@ export const studentInput = z.object({
   path: ['email'],
 });
 
+export const studentUpdateInput = z.object({
+  fullName: z.string().trim().min(2).max(120).optional(),
+  phone: z.string().trim().min(8).max(30).optional(),
+  birthDate: z.coerce.date().optional(),
+}).refine((data) => Object.keys(data).length > 0, 'Informe ao menos um campo para atualizar.');
+
 export const healthProfileInput = z.object({
   consentedAt: z.coerce.date(),
   restrictions: z.string().trim().min(1).max(5000),
