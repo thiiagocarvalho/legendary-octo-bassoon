@@ -8,6 +8,7 @@ No provedor de hospedagem, crie estas variáveis de ambiente. Nunca registre os 
 DATABASE_URL=postgresql://...
 AUTH_SECRET=<chave-aleatoria-longa>
 SEED_ADMIN_PASSWORD=<senha-inicial-do-administrador>
+NEXTAUTH_URL=https://seu-dominio.com
 ```
 
 Para gerar uma chave de sessão, execute localmente:

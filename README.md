@@ -10,6 +10,7 @@ Crie `.env.local`:
 DATABASE_URL=postgresql://...
 AUTH_SECRET=uma-chave-longa-e-aleatoria
 SEED_ADMIN_PASSWORD=uma-senha-inicial-segura
+NEXTAUTH_URL=http://localhost:3000
 ```
 
 Execute `pnpm db:generate`, `pnpm db:deploy` e `pnpm db:seed`. Para ambiente local, use `pnpm db:migrate` ao criar novas migrações.
