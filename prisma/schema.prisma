@@ -124,6 +124,7 @@ model ManualPaymentInvoice {
 model ClassSlot {
   id         String            @id @default(cuid())
   weekday    Int
+  secondWeekday Int?
   startsTime String
   duration   Int
   capacity   Int
