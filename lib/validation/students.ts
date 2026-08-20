@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 export const studentInput = z.object({
-  fullName: z.string().trim().min(2).max(120),
-  phone: z.string().trim().min(8).max(30),
-  birthDate: z.coerce.date(),
-  email: z.string().trim().email().or(z.literal('')).transform((value) => value || undefined),
-  password: z.string().min(8).max(128).or(z.literal('')).transform((value) => value || undefined),
+  fullName: z.string().trim().min(2, 'Informe o nome completo.').max(120),
+  phone: z.string().trim().min(8, 'Informe um telefone válido.').max(30),
+  birthDate: z.coerce.date({ error: 'Informe uma data de nascimento válida.' }),
+  email: z.string().trim().email('Informe um e-mail válido.').or(z.literal('')).transform((value) => value || undefined),
+  password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres.').max(128).or(z.literal('')).transform((value) => value || undefined),
 }).refine((data) => Boolean(data.email) === Boolean(data.password), {
   message: 'Informe e-mail e senha juntos para criar o acesso do aluno.',
   path: ['email'],

@@ -11,7 +11,7 @@ export function StudentForm() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const response = await fetch('/api/admin/students', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.fromEntries(form)) });
-    if (!response.ok) return setError('Confira os dados e tente novamente.');
+    if (!response.ok) return setError((await response.json().catch(() => ({}))).error || 'Não foi possível cadastrar o aluno.');
     event.currentTarget.reset();
     setError('');
     router.refresh();

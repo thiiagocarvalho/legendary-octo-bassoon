@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '../../../../lib/auth';
 import { UnauthorizedError } from '../../../../lib/permissions';
+import { studentCreationErrorMessage } from '../../../../lib/student-creation-errors';
 import { createStudent } from '../../../../server/services/students';
 
 export async function POST(request: Request) {
@@ -10,6 +11,6 @@ export async function POST(request: Request) {
     return NextResponse.json(student, { status: 201 });
   } catch (error) {
     if (error instanceof UnauthorizedError) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: 'Não foi possível cadastrar o aluno.' }, { status: 400 });
+    return NextResponse.json({ error: studentCreationErrorMessage(error) }, { status: 400 });
   }
 }
