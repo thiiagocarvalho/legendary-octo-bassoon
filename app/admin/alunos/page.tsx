@@ -3,7 +3,7 @@ import { prisma } from '../../../lib/db';
 import { StudentForm } from '../../../components/students/student-form';
 
 export default async function StudentsPage() {
-  const students = await prisma.student.findMany({ orderBy: { fullName: 'asc' }, include: { enrollments: { where: { status: 'ACTIVE' }, include: { plan: true }, take: 1 } } });
+  const students = await prisma.student.findMany({ where: { archivedAt: null }, orderBy: { fullName: 'asc' }, include: { enrollments: { where: { status: 'ACTIVE' }, include: { plan: true }, take: 1 } } });
 
   return <section className="grid gap-6">
     <div><p className="text-sm font-semibold text-emerald-700">Cadastro</p><h1 className="text-3xl font-bold">Alunos</h1></div>

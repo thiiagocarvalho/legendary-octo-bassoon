@@ -61,6 +61,7 @@ model Student {
   progress    FunctionalProgress[]
   enrollments Enrollment[]
   bookings    Booking[]
+  archivedAt  DateTime?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 }

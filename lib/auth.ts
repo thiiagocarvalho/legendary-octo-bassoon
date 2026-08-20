@@ -73,7 +73,9 @@ export const authOptions: NextAuthOptions = {
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await getServerSession(authOptions);
   const user = session?.user as (SessionUser | undefined);
-  return user?.id && user.role ? user : null;
+  if (!user?.id || !user.role) return null;
+  if (user.role === 'STUDENT' && (!user.studentId || !(await prisma.student.findFirst({ where: { id: user.studentId, archivedAt: null }, select: { id: true } })))) return null;
+  return user;
 }
 
 export async function requireAdmin() {

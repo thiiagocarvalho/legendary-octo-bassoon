@@ -24,6 +24,18 @@ export async function updateStudent(studentId: string, input: unknown, actorId: 
   return student;
 }
 
+export async function archiveStudent(studentId: string, actorId: string) {
+  const now = new Date();
+  const student = await prisma.$transaction(async (tx) => {
+    const archived = await tx.student.update({ where: { id: studentId }, data: { archivedAt: now } });
+    await tx.enrollment.updateMany({ where: { studentId, status: { in: ['ACTIVE', 'PENDING', 'OVERDUE'] } }, data: { status: 'CANCELED' } });
+    await tx.booking.updateMany({ where: { studentId, status: 'RESERVED', occurrence: { startsAt: { gte: now } } }, data: { status: 'CANCELED' } });
+    return archived;
+  });
+  await writeAuditLog({ actorId, action: 'STUDENT_ARCHIVED', entity: 'Student', entityId: student.id });
+  return student;
+}
+
 export async function upsertHealthProfile(studentId: string, input: unknown, actorId: string) {
   const data = healthProfileInput.parse(input);
   const health = await prisma.$transaction(async (tx) => {
