@@ -82,11 +82,13 @@ model Invoice {
   enrollmentId String
   amountCents  Int
   dueDate      DateTime
+  referenceMonth DateTime
   status       InvoiceStatus @default(PENDING)
   checkoutUrl  String?
   externalId   String?       @unique
   enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id])
   createdAt    DateTime      @default(now())
+  @@unique([enrollmentId, referenceMonth])
 }
 
 model ClassSlot {
