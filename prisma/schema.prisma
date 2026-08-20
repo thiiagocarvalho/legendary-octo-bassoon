@@ -30,14 +30,36 @@ model User {
 }
 
 model Student {
+  id          String               @id @default(cuid())
+  userId      String?              @unique
+  fullName    String
+  phone       String
+  birthDate   DateTime
+  user        User?                @relation(fields: [userId], references: [id])
+  health      HealthProfile?
+  progress    FunctionalProgress[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model HealthProfile {
+  id           String   @id @default(cuid())
+  studentId    String   @unique
+  consentedAt  DateTime
+  restrictions String
+  goals        String?
+  observations String?
+  student      Student  @relation(fields: [studentId], references: [id])
+  updatedAt    DateTime @updatedAt
+}
+
+model FunctionalProgress {
   id        String   @id @default(cuid())
-  userId    String?  @unique
-  fullName  String
-  phone     String
-  birthDate DateTime
-  user      User?    @relation(fields: [userId], references: [id])
+  studentId String
+  note      String
+  createdBy String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  student   Student  @relation(fields: [studentId], references: [id])
 }
 
 model AuditLog {
