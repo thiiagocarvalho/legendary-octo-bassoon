@@ -26,6 +26,13 @@ enum BookingStatus {
   ABSENT
 }
 
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  VOID
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -67,6 +74,18 @@ model Enrollment {
   startsAt  DateTime
   student   Student          @relation(fields: [studentId], references: [id])
   plan      Plan             @relation(fields: [planId], references: [id])
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  enrollmentId String
+  amountCents  Int
+  dueDate      DateTime
+  status       InvoiceStatus @default(PENDING)
+  checkoutUrl  String?
+  enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id])
+  createdAt    DateTime      @default(now())
 }
 
 model ClassSlot {

@@ -9,7 +9,7 @@ export function canChangeBooking(now: Date, startsAt: Date) {
 }
 
 export function canBookClass(occupiedSeats: number, capacity: number, weeklyReservations: number, weeklyLimit: number) {
-  if (occupiedSeats >= capacity) return { allowed: false as const, code: 'CLASS_FULL' };
-  if (!canReserveInWeek(weeklyReservations, weeklyLimit)) return { allowed: false as const, code: 'WEEKLY_LIMIT_REACHED' };
+  if (occupiedSeats >= capacity) return { allowed: false as const, code: 'CLASS_FULL' as const };
+  if (!canReserveInWeek(weeklyReservations, weeklyLimit)) return { allowed: false as const, code: 'WEEKLY_LIMIT_REACHED' as const };
   return { allowed: true as const };
 }
