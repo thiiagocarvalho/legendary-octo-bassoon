@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/db';
-import { percentage } from './dashboard-metrics';
+import { monthlyForecastCents, percentage } from './dashboard-metrics';
 
 function weekRange(date: Date) {
   const start = new Date(date); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
@@ -8,15 +8,14 @@ function weekRange(date: Date) {
 }
 
 export async function getDashboard(now = new Date()) {
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const { start: weekStart, end: weekEnd } = weekRange(now);
   const frequencyStart = new Date(now); frequencyStart.setDate(now.getDate() - 28);
-  const [activeEnrollments, pendingInvoices, students, revenue, expectedRevenue, upcoming, weeklyBookings, pastBookings] = await Promise.all([
+  const [activeEnrollments, forecastEnrollments, pendingInvoices, students, receivedPayments, upcoming, weeklyBookings, pastBookings] = await Promise.all([
     prisma.enrollment.findMany({ where: { status: 'ACTIVE' }, include: { student: { select: { id: true, fullName: true } } } }),
+    prisma.enrollment.findMany({ where: { status: { not: 'CANCELED' } }, include: { plan: { select: { monthlyPriceCents: true } } } }),
     prisma.invoice.count({ where: { status: { in: ['PENDING', 'OVERDUE'] } } }),
     prisma.student.findMany({ select: { id: true, fullName: true, birthDate: true } }),
-    prisma.invoice.aggregate({ where: { status: 'PAID', dueDate: { gte: monthStart } }, _sum: { amountCents: true } }),
-    prisma.invoice.aggregate({ where: { status: { not: 'VOID' }, dueDate: { gte: monthStart } }, _sum: { amountCents: true } }),
+    prisma.manualPayment.aggregate({ _sum: { amountCents: true } }),
     prisma.classOccurrence.findMany({ where: { startsAt: { gte: now, lt: weekEnd } }, include: { classSlot: true, bookings: { where: { status: { not: 'CANCELED' } } } } }),
     prisma.booking.findMany({ where: { status: { in: ['RESERVED', 'PRESENT'] }, occurrence: { startsAt: { gte: weekStart, lt: weekEnd } } }, select: { studentId: true } }),
     prisma.booking.findMany({ where: { occurrence: { startsAt: { gte: frequencyStart, lt: now } } }, select: { studentId: true, status: true } }),
@@ -34,5 +33,10 @@ export async function getDashboard(now = new Date()) {
   const reservedSeats = upcoming.reduce((sum, occurrence) => sum + occurrence.bookings.length, 0);
   const attended = [...presentByStudent.values()].reduce((sum, value) => sum + value, 0);
   const scheduled = [...registeredByStudent.values()].reduce((sum, value) => sum + value, 0);
-  return { activeStudents, pendingInvoices, birthdays, receivedCents: revenue._sum.amountCents ?? 0, expectedCents: expectedRevenue._sum.amountCents ?? 0, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
+  const forecastCents = monthlyForecastCents(forecastEnrollments);
+  const monthlyForecasts = [0, 1, 2].map((offset) => {
+    const month = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    return { label: month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), cents: forecastCents };
+  });
+  return { activeStudents, pendingInvoices, birthdays, receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
 }
