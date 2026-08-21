@@ -12,7 +12,10 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: 'admin@pilates.local' },
-    update: {},
+    update: {
+      passwordHash: await bcrypt.hash(password, 12),
+      role: Role.ADMIN,
+    },
     create: {
       email: 'admin@pilates.local',
       passwordHash: await bcrypt.hash(password, 12),
