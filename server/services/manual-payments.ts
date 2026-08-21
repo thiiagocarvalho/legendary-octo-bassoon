@@ -1,4 +1,4 @@
-import { InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { manualPaymentInput } from '../../lib/validation/manual-payments';
 import { monthReference } from './invoices';
@@ -20,7 +20,7 @@ export async function recordManualPayment(input: unknown, actorId: string) {
   const data = manualPaymentInput.parse(input);
   const receivedAt = data.receivedAt ?? new Date();
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const enrollment = await tx.enrollment.findUniqueOrThrow({
       where: { id: data.enrollmentId },
       include: { plan: true, invoices: { orderBy: { referenceMonth: 'asc' } } },

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/db';
+import { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { functionalProgressInput, healthProfileInput, studentInput, studentUpdateInput } from '../../lib/validation/students';
 import { writeAuditLog } from './audit';
@@ -7,7 +8,7 @@ import { healthHistoryData } from './health-history';
 export async function createStudent(input: unknown, actorId: string) {
   const data = studentInput.parse(input);
   const { email, password, planId, classSlotId, ...studentData } = data;
-  const student = await prisma.$transaction(async (tx) => {
+  const student = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const user = email && password ? await tx.user.create({
       data: { email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 12), role: 'STUDENT' },
     }) : null;
@@ -28,7 +29,7 @@ export async function updateStudent(studentId: string, input: unknown, actorId: 
 
 export async function archiveStudent(studentId: string, actorId: string) {
   const now = new Date();
-  const student = await prisma.$transaction(async (tx) => {
+  const student = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const archived = await tx.student.update({ where: { id: studentId }, data: { archivedAt: now } });
     await tx.enrollment.updateMany({ where: { studentId, status: { in: ['ACTIVE', 'PENDING', 'OVERDUE'] } }, data: { status: 'CANCELED' } });
     await tx.booking.updateMany({ where: { studentId, status: 'RESERVED', occurrence: { startsAt: { gte: now } } }, data: { status: 'CANCELED' } });
@@ -39,7 +40,7 @@ export async function archiveStudent(studentId: string, actorId: string) {
 }
 
 export async function deleteStudent(studentId: string, actorId: string) {
-  const student = await prisma.$transaction(async (tx) => {
+  const student = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const existing = await tx.student.findUniqueOrThrow({ where: { id: studentId }, select: { userId: true } });
     const enrollments = await tx.enrollment.findMany({ where: { studentId }, select: { id: true } });
     const enrollmentIds = enrollments.map((enrollment: (typeof enrollments)[number]) => enrollment.id);
@@ -64,7 +65,7 @@ export async function deleteStudent(studentId: string, actorId: string) {
 
 export async function upsertHealthProfile(studentId: string, input: unknown, actorId: string) {
   const data = healthProfileInput.parse(input);
-  const health = await prisma.$transaction(async (tx) => {
+  const health = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const profile = await tx.healthProfile.upsert({
       where: { studentId },
       create: { studentId, ...data },
