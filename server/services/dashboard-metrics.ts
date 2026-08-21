@@ -3,5 +3,5 @@ export function percentage(value: number, total: number) {
 }
 
 export function monthlyForecastCents(enrollments: Array<{ plan: { monthlyPriceCents: number } }>) {
-  return enrollments.reduce((sum, enrollment) => sum + enrollment.plan.monthlyPriceCents, 0);
+  return enrollments.reduce((sum: number, enrollment: { plan: { monthlyPriceCents: number } }) => sum + enrollment.plan.monthlyPriceCents, 0);
 }

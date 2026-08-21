@@ -42,9 +42,9 @@ export async function deleteStudent(studentId: string, actorId: string) {
   const student = await prisma.$transaction(async (tx) => {
     const existing = await tx.student.findUniqueOrThrow({ where: { id: studentId }, select: { userId: true } });
     const enrollments = await tx.enrollment.findMany({ where: { studentId }, select: { id: true } });
-    const enrollmentIds = enrollments.map((enrollment) => enrollment.id);
+    const enrollmentIds = enrollments.map((enrollment: (typeof enrollments)[number]) => enrollment.id);
     const invoices = await tx.invoice.findMany({ where: { enrollmentId: { in: enrollmentIds } }, select: { id: true } });
-    const invoiceIds = invoices.map((invoice) => invoice.id);
+    const invoiceIds = invoices.map((invoice: (typeof invoices)[number]) => invoice.id);
 
     await tx.manualPaymentInvoice.deleteMany({ where: { invoiceId: { in: invoiceIds } } });
     await tx.manualPayment.deleteMany({ where: { enrollmentId: { in: enrollmentIds } } });

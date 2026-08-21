@@ -3,7 +3,7 @@ import { prisma } from '../../lib/db';
 export async function materializeOccurrences(classSlotId: string, from = new Date(), weeks = 8) {
   const slot = await prisma.classSlot.findUniqueOrThrow({ where: { id: classSlotId } });
   const start = new Date(from); start.setHours(0, 0, 0, 0);
-  const rows = [slot.weekday, slot.secondWeekday].filter((weekday): weekday is number => weekday !== null).flatMap((weekday) => {
+  const rows = [slot.weekday, slot.secondWeekday].filter((weekday): weekday is number => weekday !== null).flatMap((weekday: number) => {
     const offset = (weekday - start.getDay() + 7) % 7;
     return Array.from({ length: weeks }, (_, index) => {
       const startsAt = new Date(start); startsAt.setDate(start.getDate() + offset + index * 7);

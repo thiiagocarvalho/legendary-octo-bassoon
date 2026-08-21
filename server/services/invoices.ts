@@ -16,7 +16,7 @@ export async function createInvoice(enrollmentId: string, dueDate: Date) {
 
 export async function createMonthlyInvoices(now = new Date()) {
   const enrollments = await prisma.enrollment.findMany({ where: { status: 'ACTIVE' }, select: { id: true } });
-  const invoices = await Promise.all(enrollments.map((enrollment) => createInvoice(enrollment.id, now)));
+  const invoices = await Promise.all(enrollments.map((enrollment: (typeof enrollments)[number]) => createInvoice(enrollment.id, now)));
   return { createdOrExisting: invoices.length };
 }
 
