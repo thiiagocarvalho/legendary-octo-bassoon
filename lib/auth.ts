@@ -28,12 +28,22 @@ export const authOptions: NextAuthOptions = {
 
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-          include: { student: { select: { id: true } } },
-        });
+        const user = await (async () => {
+          try {
+            return await prisma.user.findUnique({
+              where: { email },
+              include: { student: { select: { id: true } } },
+            });
+          } catch (error) {
+            console.error('[auth] consulta ao banco falhou', { name: error instanceof Error ? error.name : 'UnknownError' });
+            throw error;
+          }
+        })();
 
-        if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+        const passwordMatches = user ? await bcrypt.compare(password, user.passwordHash) : false;
+        console.info('[auth] resultado das credenciais', { userFound: Boolean(user), passwordMatches });
+
+        if (!user || !passwordMatches) {
           return null;
         }
 
