@@ -55,7 +55,7 @@ export async function deleteStudent(studentId: string, actorId: string) {
     await tx.student.delete({ where: { id: studentId } });
     if (existing.userId) await tx.user.delete({ where: { id: existing.userId } });
     return existing;
-  });
+  }, { timeout: 20_000 });
   await writeAuditLog({ actorId, action: 'STUDENT_DELETED', entity: 'Student', entityId: studentId });
   return { id: studentId, userId: student.userId };
 }
