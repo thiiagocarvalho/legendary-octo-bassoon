@@ -36,6 +36,30 @@ export async function archiveStudent(studentId: string, actorId: string) {
   return student;
 }
 
+export async function deleteStudent(studentId: string, actorId: string) {
+  const student = await prisma.$transaction(async (tx) => {
+    const existing = await tx.student.findUniqueOrThrow({ where: { id: studentId }, select: { userId: true } });
+    const enrollments = await tx.enrollment.findMany({ where: { studentId }, select: { id: true } });
+    const enrollmentIds = enrollments.map((enrollment) => enrollment.id);
+    const invoices = await tx.invoice.findMany({ where: { enrollmentId: { in: enrollmentIds } }, select: { id: true } });
+    const invoiceIds = invoices.map((invoice) => invoice.id);
+
+    await tx.manualPaymentInvoice.deleteMany({ where: { invoiceId: { in: invoiceIds } } });
+    await tx.manualPayment.deleteMany({ where: { enrollmentId: { in: enrollmentIds } } });
+    await tx.invoice.deleteMany({ where: { id: { in: invoiceIds } } });
+    await tx.enrollment.deleteMany({ where: { id: { in: enrollmentIds } } });
+    await tx.booking.deleteMany({ where: { studentId } });
+    await tx.healthProfileHistory.deleteMany({ where: { studentId } });
+    await tx.healthProfile.deleteMany({ where: { studentId } });
+    await tx.functionalProgress.deleteMany({ where: { studentId } });
+    await tx.student.delete({ where: { id: studentId } });
+    if (existing.userId) await tx.user.delete({ where: { id: existing.userId } });
+    return existing;
+  });
+  await writeAuditLog({ actorId, action: 'STUDENT_DELETED', entity: 'Student', entityId: studentId });
+  return { id: studentId, userId: student.userId };
+}
+
 export async function upsertHealthProfile(studentId: string, input: unknown, actorId: string) {
   const data = healthProfileInput.parse(input);
   const health = await prisma.$transaction(async (tx) => {
