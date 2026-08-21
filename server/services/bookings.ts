@@ -1,5 +1,5 @@
-import { BookingStatus, Prisma } from '@prisma/client';
-import { prisma } from '../../lib/db';
+import { BookingStatus } from '@prisma/client';
+import { prisma, type TransactionClient } from '../../lib/db';
 import { canBookClass, canChangeBooking, canSwapBooking } from './booking-rules';
 import { consumeMakeupCredit } from './makeup-credits';
 import { makeupBookingDecision } from './makeup-credit-rules';
@@ -15,7 +15,7 @@ function weekRange(date: Date) {
 }
 
 export async function createBooking(studentId: string, occurrenceId: string) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx: TransactionClient) => {
     const occurrence = await tx.classOccurrence.findUnique({ where: { id: occurrenceId }, include: { classSlot: true } });
     if (!occurrence) throw new BookingError('CLASS_FULL');
     const enrollment = await tx.enrollment.findFirst({ where: { studentId, status: 'ACTIVE' }, include: { plan: true }, orderBy: { startsAt: 'desc' } });
@@ -35,7 +35,7 @@ export async function createBooking(studentId: string, occurrenceId: string) {
 }
 
 export async function changeBooking(studentId: string, bookingId: string, targetOccurrenceId: string, now = new Date()) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx: TransactionClient) => {
     const [current, target, enrollment] = await Promise.all([
       tx.booking.findFirst({ where: { id: bookingId, studentId }, include: { occurrence: true } }),
       tx.classOccurrence.findUnique({ where: { id: targetOccurrenceId }, include: { classSlot: true } }),
@@ -74,7 +74,7 @@ export async function cancelBooking(studentId: string, bookingId: string, now = 
 }
 
 export async function createMakeupBooking(studentId: string, occurrenceId: string) {
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx: TransactionClient) => {
     const occurrence = await tx.classOccurrence.findUnique({ where: { id: occurrenceId }, include: { classSlot: true } });
     if (!occurrence) throw new BookingError('CLASS_FULL');
     const [availableCredits, occupied, existing] = await Promise.all([

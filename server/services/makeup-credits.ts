@@ -1,5 +1,5 @@
-import { BookingStatus, MakeupCreditStatus, Prisma } from '@prisma/client';
-import { prisma } from '../../lib/db';
+import { BookingStatus, MakeupCreditStatus } from '@prisma/client';
+import { prisma, type TransactionClient } from '../../lib/db';
 import { writeAuditLog } from './audit';
 
 export class MakeupCreditError extends Error {
@@ -22,7 +22,7 @@ export async function availableMakeupCredits(studentId: string) {
   return prisma.makeupCredit.findMany({ where: { studentId, status: MakeupCreditStatus.AVAILABLE }, orderBy: { createdAt: 'asc' } });
 }
 
-export async function consumeMakeupCredit(studentId: string, bookingId: string, tx: Prisma.TransactionClient) {
+export async function consumeMakeupCredit(studentId: string, bookingId: string, tx: TransactionClient) {
   const credit = await tx.makeupCredit.findFirst({ where: { studentId, status: MakeupCreditStatus.AVAILABLE }, orderBy: { createdAt: 'asc' } });
   if (!credit) throw new MakeupCreditError('NO_MAKEUP_CREDIT');
   return tx.makeupCredit.update({ where: { id: credit.id }, data: { status: MakeupCreditStatus.USED, usedBookingId: bookingId, usedAt: new Date() } });
