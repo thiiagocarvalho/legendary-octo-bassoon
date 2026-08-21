@@ -6,6 +6,8 @@ export const studentInput = z.object({
   birthDate: z.coerce.date({ error: 'Informe uma data de nascimento válida.' }),
   email: z.string().trim().email('Informe um e-mail válido.').or(z.literal('')).transform((value) => value || undefined),
   password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres.').max(128).or(z.literal('')).transform((value) => value || undefined),
+  planId: z.string().min(1, 'Selecione o plano.').optional(),
+  classSlotId: z.string().min(1, 'Selecione a turma.').optional(),
 }).refine((data) => Boolean(data.email) === Boolean(data.password), {
   message: 'Informe e-mail e senha juntos para criar o acesso do aluno.',
   path: ['email'],

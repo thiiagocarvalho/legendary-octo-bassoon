@@ -1,0 +1,2 @@
+CREATE TABLE "StudentMessage" ("id" TEXT NOT NULL, "studentId" TEXT NOT NULL, "content" TEXT NOT NULL, "readAt" TIMESTAMP(3), "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "StudentMessage_pkey" PRIMARY KEY ("id"));
+ALTER TABLE "StudentMessage" ADD CONSTRAINT "StudentMessage_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -6,12 +6,14 @@ import { healthHistoryData } from './health-history';
 
 export async function createStudent(input: unknown, actorId: string) {
   const data = studentInput.parse(input);
-  const { email, password, ...studentData } = data;
+  const { email, password, planId, classSlotId, ...studentData } = data;
   const student = await prisma.$transaction(async (tx) => {
     const user = email && password ? await tx.user.create({
       data: { email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 12), role: 'STUDENT' },
     }) : null;
-    return tx.student.create({ data: { ...studentData, userId: user?.id } });
+    const student = await tx.student.create({ data: { ...studentData, userId: user?.id } });
+    if (planId) await tx.enrollment.create({ data: { studentId: student.id, planId, classSlotId, status: 'PENDING', startsAt: new Date() } });
+    return student;
   });
   await writeAuditLog({ actorId, action: 'STUDENT_CREATED', entity: 'Student', entityId: student.id });
   return student;

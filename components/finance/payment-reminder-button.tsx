@@ -1,0 +1,2 @@
+import { paymentReminder } from '../../lib/whatsapp-payment-reminders';
+export function PaymentReminderButton({ student, dueDate }: { student: { fullName: string; phone: string }; dueDate: Date }) { const reminder=paymentReminder(student,dueDate); return reminder?<a className="ml-3 text-sm font-semibold text-emerald-700 underline" href={reminder.href} target="_blank" rel="noreferrer">WhatsApp · {reminder.label}</a>:null; }

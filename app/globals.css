@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  color: #18231f;
-  background: #f7faf7;
+  color: #161616;
+  background: #f4f3f0;
 }
 
 * { box-sizing: border-box; }
@@ -12,6 +12,26 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f7faf7;
+  background: radial-gradient(circle at top right, #f2e3ad 0, transparent 28%), #f4f3f0;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+::selection { background: #b08d2e; color: #fff; }
+
+/* Identidade PilatesProCRM: grafite, preto e dourado. */
+[class*="bg-emerald-700"] { background-color: #171717 !important; }
+[class*="bg-emerald-50"] { background-color: #f7f3e8 !important; }
+[class*="bg-emerald-100"] { background-color: #eee3bd !important; }
+[class*="text-emerald-"] { color: #9b7618 !important; }
+[class*="border-emerald-"] { border-color: #b08d2e !important; }
+[class*="hover:bg-emerald-"]:hover { background-color: #282828 !important; }
+
+header { border-color: #d2c28c !important; }
+header nav > a:first-child { color: #151515 !important; }
+
+.brand-logo { display: inline-flex; align-items: center; gap: .55rem; color: #161616; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
+.brand-mark { position: relative; display: inline-flex; align-items: flex-end; justify-content: center; width: 2rem; height: 2rem; overflow: hidden; border: 1px solid #b08d2e; border-radius: 50%; background: #171717; }
+.brand-mark i { position: absolute; bottom: .38rem; width: .42rem; border-radius: .5rem .5rem 0 0; background: #d5b24b; transform: rotate(28deg); }
+.brand-mark i:nth-child(1) { height: .7rem; left: .44rem; }
+.brand-mark i:nth-child(2) { height: 1.15rem; left: .8rem; background: #f1daa0; }
+.brand-mark i:nth-child(3) { height: .82rem; right: .38rem; }

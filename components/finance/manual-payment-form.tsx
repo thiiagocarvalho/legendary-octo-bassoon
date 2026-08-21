@@ -24,7 +24,8 @@ export function ManualPaymentForm({ enrollments }: { enrollments: Enrollment[] }
       body: JSON.stringify({ ...data, monthsCovered: Number(data.monthsCovered), amountCents: Math.round(Number(String(data.amount).replace(',', '.')) * 100) }),
     });
 
-    setMessage(response.ok ? 'Pagamento registrado e mensalidades quitadas.' : 'Confira os dados do recebimento.');
+    const result = await response.json().catch(() => ({}));
+    setMessage(response.ok ? 'Pagamento registrado e mensalidades quitadas.' : (result.error || 'Confira os dados do recebimento.'));
     if (response.ok) {
       formElement.reset();
       setEnrollmentId('');

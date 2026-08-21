@@ -56,5 +56,5 @@ export async function recordManualPayment(input: unknown, actorId: string) {
     await tx.enrollment.update({ where: { id: enrollment.id }, data: { status: 'ACTIVE' } });
     await tx.auditLog.create({ data: { actorId, action: 'MANUAL_PAYMENT_RECORDED', entity: 'ManualPayment', entityId: payment.id, reason: data.notes || null } });
     return payment;
-  });
+  }, { timeout: 20_000 });
 }

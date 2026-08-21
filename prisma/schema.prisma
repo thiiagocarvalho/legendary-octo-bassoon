@@ -26,6 +26,12 @@ enum BookingStatus {
   ABSENT
 }
 
+enum MakeupCreditStatus {
+  AVAILABLE
+  USED
+  CANCELED
+}
+
 enum InvoiceStatus {
   PENDING
   PAID
@@ -61,9 +67,20 @@ model Student {
   progress    FunctionalProgress[]
   enrollments Enrollment[]
   bookings    Booking[]
+  messages    StudentMessage[]
+  makeupCredits MakeupCredit[]
   archivedAt  DateTime?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
+}
+
+model StudentMessage {
+  id        String   @id @default(cuid())
+  studentId String
+  content   String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id])
 }
 
 model Plan {
@@ -82,6 +99,8 @@ model Enrollment {
   startsAt  DateTime
   student   Student          @relation(fields: [studentId], references: [id])
   plan      Plan             @relation(fields: [planId], references: [id])
+  classSlotId String?
+  classSlot ClassSlot? @relation(fields: [classSlotId], references: [id])
   invoices  Invoice[]
   manualPayments ManualPayment[]
 }
@@ -129,6 +148,7 @@ model ClassSlot {
   duration   Int
   capacity   Int
   occurrences ClassOccurrence[]
+  enrollments Enrollment[]
 }
 
 model ClassOccurrence {
@@ -149,7 +169,22 @@ model Booking {
   student      Student         @relation(fields: [studentId], references: [id])
   occurrence   ClassOccurrence @relation(fields: [occurrenceId], references: [id])
   createdAt    DateTime        @default(now())
+  sourceMakeupCredit MakeupCredit? @relation("MakeupSourceBooking")
+  usedMakeupCredit MakeupCredit? @relation("MakeupUsedBooking")
   @@unique([studentId, occurrenceId])
+}
+
+model MakeupCredit {
+  id              String             @id @default(cuid())
+  studentId       String
+  sourceBookingId String             @unique
+  usedBookingId   String?            @unique
+  status          MakeupCreditStatus @default(AVAILABLE)
+  createdAt       DateTime           @default(now())
+  usedAt          DateTime?
+  student         Student            @relation(fields: [studentId], references: [id])
+  sourceBooking   Booking            @relation("MakeupSourceBooking", fields: [sourceBookingId], references: [id])
+  usedBooking     Booking?           @relation("MakeupUsedBooking", fields: [usedBookingId], references: [id])
 }
 
 model HealthProfile {
