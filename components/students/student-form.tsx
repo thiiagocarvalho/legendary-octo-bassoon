@@ -24,8 +24,8 @@ export function StudentForm({ plans, classSlots }: { plans: { id: string; name: 
     <input aria-label="Data de nascimento" className="rounded-lg border px-3 py-2" name="birthDate" required type="date" />
     <input aria-label="E-mail de acesso" className="rounded-lg border px-3 py-2" name="email" placeholder="E-mail de acesso (opcional)" type="email" />
     <input aria-label="Senha de acesso" className="rounded-lg border px-3 py-2" name="password" minLength={8} placeholder="Senha inicial (opcional)" type="password" />
-    <select className="rounded-lg border px-3 py-2" name="planId"><option value="">Plano (opcional)</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select>
-    <select className="rounded-lg border px-3 py-2" name="classSlotId"><option value="">Turma (opcional)</option>{classSlots.map((slot) => <option key={slot.id} value={slot.id}>{slot.weekday === 1 ? 'Segunda' : slot.weekday === 2 ? 'Terça' : slot.weekday === 3 ? 'Quarta' : 'Quinta'}{slot.secondWeekday ? ' e ' + (slot.secondWeekday === 3 ? 'Quarta' : 'Quinta') : ''} · {slot.startsTime}</option>)}</select>
+    <select className="rounded-lg border px-3 py-2" name="planId"><option value="">Plano (opcional)</option>{plans.map((plan: (typeof plans)[number]) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select>
+    <select className="rounded-lg border px-3 py-2" name="classSlotId"><option value="">Turma (opcional)</option>{classSlots.map((slot: (typeof classSlots)[number]) => <option key={slot.id} value={slot.id}>{slot.weekday === 1 ? 'Segunda' : slot.weekday === 2 ? 'Terça' : slot.weekday === 3 ? 'Quarta' : 'Quinta'}{slot.secondWeekday ? ' e ' + (slot.secondWeekday === 3 ? 'Quarta' : 'Quinta') : ''} · {slot.startsTime}</option>)}</select>
     <button className="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white" type="submit">Cadastrar aluno</button>
     <p className="text-sm text-slate-600 md:col-span-3">E-mail e senha são opcionais, mas devem ser preenchidos juntos para liberar o portal do aluno.</p>
     {error ? <p className="text-sm text-red-700 md:col-span-3">{error}</p> : null}

@@ -11,7 +11,7 @@ export function ManualPaymentForm({ enrollments }: { enrollments: Enrollment[] }
   const [message, setMessage] = useState('');
   const [enrollmentId, setEnrollmentId] = useState('');
   const [monthsCovered, setMonthsCovered] = useState(1);
-  const enrollment = enrollments.find((item) => item.id === enrollmentId);
+  const enrollment = enrollments.find((item: Enrollment) => item.id === enrollmentId);
   const expected = enrollment ? expectedManualPaymentCents(enrollment.plan.monthlyPriceCents, monthsCovered) : null;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -39,7 +39,7 @@ export function ManualPaymentForm({ enrollments }: { enrollments: Enrollment[] }
       Aluno
       <select className="rounded-lg border px-3 py-2 font-normal" name="enrollmentId" onChange={(event) => setEnrollmentId(event.target.value)} required value={enrollmentId}>
         <option value="">Selecione o aluno</option>
-        {enrollments.map((item) => <option value={item.id} key={item.id}>{item.student.fullName} · {item.plan.name}</option>)}
+        {enrollments.map((item: Enrollment) => <option value={item.id} key={item.id}>{item.student.fullName} · {item.plan.name}</option>)}
       </select>
     </label>
     <label className="grid gap-1 text-sm font-medium text-slate-700">

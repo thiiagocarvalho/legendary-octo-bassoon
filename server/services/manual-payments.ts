@@ -7,8 +7,8 @@ type InvoiceCandidate = { id: string; referenceMonth: Date; status: string };
 
 export function selectInvoicesForManualPayment<T extends InvoiceCandidate>(invoices: T[], monthsCovered: number) {
   return invoices
-    .filter((invoice) => invoice.status === InvoiceStatus.PENDING || invoice.status === InvoiceStatus.OVERDUE)
-    .sort((left, right) => left.referenceMonth.getTime() - right.referenceMonth.getTime())
+    .filter((invoice: T) => invoice.status === InvoiceStatus.PENDING || invoice.status === InvoiceStatus.OVERDUE)
+    .sort((left: T, right: T) => left.referenceMonth.getTime() - right.referenceMonth.getTime())
     .slice(0, monthsCovered);
 }
 
@@ -26,7 +26,7 @@ export async function recordManualPayment(input: unknown, actorId: string) {
       include: { plan: true, invoices: { orderBy: { referenceMonth: 'asc' } } },
     });
     const targets = selectInvoicesForManualPayment(enrollment.invoices, data.monthsCovered);
-    const references = enrollment.invoices.map((invoice) => invoice.referenceMonth);
+    const references = enrollment.invoices.map((invoice: (typeof enrollment.invoices)[number]) => invoice.referenceMonth);
     let cursor = references.length ? nextMonth(references[references.length - 1]) : monthReference(receivedAt);
 
     while (targets.length < data.monthsCovered) {
@@ -39,7 +39,7 @@ export async function recordManualPayment(input: unknown, actorId: string) {
       cursor = nextMonth(cursor);
     }
 
-    await tx.invoice.updateMany({ where: { id: { in: targets.map((invoice) => invoice.id) } }, data: { status: InvoiceStatus.PAID } });
+    await tx.invoice.updateMany({ where: { id: { in: targets.map((invoice: (typeof targets)[number]) => invoice.id) } }, data: { status: InvoiceStatus.PAID } });
     const payment = await tx.manualPayment.create({
       data: {
         enrollmentId: enrollment.id,
@@ -49,7 +49,7 @@ export async function recordManualPayment(input: unknown, actorId: string) {
         receivedAt,
         notes: data.notes || null,
         receivedBy: actorId,
-        invoices: { create: targets.map((invoice) => ({ invoiceId: invoice.id })) },
+        invoices: { create: targets.map((invoice: (typeof targets)[number]) => ({ invoiceId: invoice.id })) },
       },
       include: { invoices: { include: { invoice: true } } },
     });
