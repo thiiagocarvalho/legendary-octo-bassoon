@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { attendanceButtonClass } from '../../lib/attendance-display';
 
 type RosterStudent = { id: string; fullName: string };
 type RosterItem = { student: RosterStudent; bookingId: string | null; status: string };
@@ -42,8 +43,8 @@ export function AdminAgenda() {
         {item.roster.map((entry) => <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-3" key={entry.student.id}>
           <span className="font-semibold">{entry.student.fullName}<small className="ml-2 font-normal text-slate-500">{entry.status === 'PRESENT' ? 'Presente' : entry.status === 'ABSENT' ? 'Faltou' : ''}</small></span>
           <span className="flex gap-2">
-            <button className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => mark(item.id, entry.student.id, 'PRESENT')}>Presente</button>
-            <button className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => mark(item.id, entry.student.id, 'ABSENT')}>Faltou</button>
+            <button className={`rounded-lg px-4 py-2 text-sm font-semibold ${attendanceButtonClass(entry.status, 'PRESENT')}`} onClick={() => mark(item.id, entry.student.id, 'PRESENT')}>Presente</button>
+            <button className={`rounded-lg px-4 py-2 text-sm font-semibold ${attendanceButtonClass(entry.status, 'ABSENT')}`} onClick={() => mark(item.id, entry.student.id, 'ABSENT')}>Faltou</button>
           </span>
         </li>)}
       </ul> : <p className="mt-3 text-sm text-slate-600">Nenhum aluno matriculado neste horário.</p>}
