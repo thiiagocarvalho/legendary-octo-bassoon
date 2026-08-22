@@ -1,4 +1,64 @@
 'use client';
-import { useEffect,useState } from 'react';
-type Booking={id:string;status:string;student:{fullName:string}};type Item={id:string;startsAt:string;classSlot:{capacity:number;weekday:number;secondWeekday:number|null};bookings:Booking[]};
-export function AdminAgenda(){const [items,setItems]=useState<Item[]>([]);async function load(){const r=await fetch('/api/admin/agenda');if(r.ok)setItems(await r.json());}useEffect(()=>{void load()},[]);async function mark(id:string,status:string){const reason=status==='CANCELED'?window.prompt('Motivo do cancelamento manual:')??'':undefined;if(status==='CANCELED'&&!reason)return;await fetch(`/api/admin/bookings/${id}/attendance`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status,reason})});void load()}async function releaseMakeup(id:string){const r=await fetch(`/api/admin/bookings/${id}/makeup-credit`,{method:'POST'});if(!r.ok)window.alert('A reposição já foi liberada ou a falta não está registrada.');else {window.alert('Reposição liberada para o aluno.');void load();}}const card=(item:Item)=>{const used=item.bookings.filter(b=>b.status!=='CANCELED').length;return <article className="rounded-xl border bg-white p-4" key={item.id}><div className="flex justify-between gap-4"><strong>{new Date(item.startsAt).toLocaleString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</strong><span className={`rounded-full px-2 py-1 text-sm font-semibold ${used>=item.classSlot.capacity?'bg-red-100 text-red-700':'bg-emerald-100 text-emerald-700'}`}>{used}/{item.classSlot.capacity} vagas</span></div>{item.bookings.length?<ul className="mt-3 grid gap-2">{item.bookings.map(booking=><li className="flex flex-wrap items-center justify-between gap-2 border-t pt-2" key={booking.id}><span>{booking.student.fullName} <small className="text-slate-500">· {booking.status}</small></span><span className="flex gap-2"><button className="text-sm text-emerald-700" onClick={()=>mark(booking.id,'PRESENT')}>Presente</button><button className="text-sm text-amber-700" onClick={()=>mark(booking.id,'ABSENT')}>Falta</button>{booking.status==='ABSENT'?<button className="text-sm font-semibold text-blue-700" onClick={()=>releaseMakeup(booking.id)}>Liberar reposição</button>:null}<button className="text-sm text-red-700" onClick={()=>mark(booking.id,'CANCELED')}>Cancelar</button></span></li>)}</ul>:<p className="mt-3 text-sm text-slate-600">Nenhuma reserva ainda.</p>}</article>};const mw=items.filter(i=>[1,3].includes(i.classSlot.weekday));const tt=items.filter(i=>[2,4].includes(i.classSlot.weekday));return <div className="grid gap-4">{[['Aulas de Segunda e Quarta',mw],['Aulas de Terça e Quinta',tt]].map(([title,list])=><details className="rounded-xl border bg-white" key={String(title)}><summary className="cursor-pointer p-4 text-lg font-bold">{String(title)} · {(list as Item[]).length} aula(s)</summary><div className="grid gap-4 border-t p-4">{(list as Item[]).map(card)}</div></details>)}{!items.length?<p className="text-slate-600">Não há aulas futuras. Cadastre uma turma para gerar horários.</p>:null}</div>}
+
+import { useEffect, useState } from 'react';
+
+type RosterStudent = { id: string; fullName: string };
+type RosterItem = { student: RosterStudent; bookingId: string | null; status: string };
+type Item = {
+  id: string;
+  startsAt: string;
+  classSlot: { capacity: number; weekday: number; secondWeekday: number | null };
+  roster: RosterItem[];
+};
+
+export function AdminAgenda() {
+  const [items, setItems] = useState<Item[]>([]);
+
+  async function load() {
+    const response = await fetch('/api/admin/agenda');
+    if (response.ok) setItems(await response.json());
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function mark(occurrenceId: string, studentId: string, status: 'PRESENT' | 'ABSENT') {
+    const response = await fetch('/api/admin/attendance', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ occurrenceId, studentId, status }),
+    });
+    if (!response.ok) window.alert('Não foi possível registrar a presença.');
+    else void load();
+  }
+
+  function card(item: Item) {
+    const used = item.roster.length;
+    return <article className="rounded-xl border bg-white p-4" key={item.id}>
+      <div className="flex flex-wrap justify-between gap-3">
+        <strong className="text-lg">{new Date(item.startsAt).toLocaleString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</strong>
+        <span className={`rounded-full px-3 py-1 text-sm font-semibold ${used >= item.classSlot.capacity ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>{used}/{item.classSlot.capacity} alunos</span>
+      </div>
+      {item.roster.length ? <ul className="mt-3 grid gap-2">
+        {item.roster.map((entry) => <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-3" key={entry.student.id}>
+          <span className="font-semibold">{entry.student.fullName}<small className="ml-2 font-normal text-slate-500">{entry.status === 'PRESENT' ? 'Presente' : entry.status === 'ABSENT' ? 'Faltou' : ''}</small></span>
+          <span className="flex gap-2">
+            <button className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => mark(item.id, entry.student.id, 'PRESENT')}>Presente</button>
+            <button className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => mark(item.id, entry.student.id, 'ABSENT')}>Faltou</button>
+          </span>
+        </li>)}
+      </ul> : <p className="mt-3 text-sm text-slate-600">Nenhum aluno matriculado neste horário.</p>}
+    </article>;
+  }
+
+  const mondayWednesday = items.filter((item) => [1, 3].includes(item.classSlot.weekday));
+  const tuesdayThursday = items.filter((item) => [2, 4].includes(item.classSlot.weekday));
+  const groups: Array<[string, Item[]]> = [['Aulas de Segunda e Quarta', mondayWednesday], ['Aulas de Terça e Quinta', tuesdayThursday]];
+
+  return <div className="grid gap-4">
+    {groups.map(([title, list]) => <details className="rounded-xl border bg-white" key={title}>
+      <summary className="cursor-pointer p-4 text-lg font-bold">{title} · {list.length} aula(s)</summary>
+      <div className="grid gap-4 border-t p-4">{list.map(card)}</div>
+    </details>)}
+    {!items.length ? <p className="text-slate-600">Não há aulas futuras. Cadastre uma turma para gerar horários.</p> : null}
+  </div>;
+}
