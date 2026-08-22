@@ -32,11 +32,7 @@ export const authOptions: NextAuthOptions = {
           where: { email },
           include: { student: { select: { id: true } } },
         });
-        const passwordMatches = user ? await bcrypt.compare(password, user.passwordHash) : false;
-
-        console.info('[auth] resultado das credenciais', { userFound: Boolean(user), passwordMatches });
-
-        if (!user || !passwordMatches) {
+        if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
           return null;
         }
 
