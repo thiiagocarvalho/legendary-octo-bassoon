@@ -3,6 +3,7 @@ import { prisma, type TransactionClient } from '../../lib/db';
 import { canBookClass, canChangeBooking, canSwapBooking } from './booking-rules';
 import { consumeMakeupCredit } from './makeup-credits';
 import { makeupBookingDecision } from './makeup-credit-rules';
+import { bookingChangeNotification } from './booking-change-notification';
 
 export class BookingError extends Error {
   constructor(public code: 'ENROLLMENT_INACTIVE' | 'CLASS_FULL' | 'WEEKLY_LIMIT_REACHED' | 'CHANGE_WINDOW_CLOSED' | 'ALREADY_BOOKED' | 'NO_MAKEUP_CREDIT') { super(code); }
@@ -62,6 +63,7 @@ export async function changeBooking(studentId: string, bookingId: string, target
       ? await tx.booking.update({ where: { id: targetBooking.id }, data: { status: BookingStatus.RESERVED } })
       : await tx.booking.create({ data: { studentId, occurrenceId: target.id } });
     await tx.booking.update({ where: { id: current.id }, data: { status: BookingStatus.CANCELED } });
+    await tx.studentMessage.create({ data: { studentId, content: bookingChangeNotification(current.occurrence.startsAt, target.startsAt) } });
     return replacement;
   }, { isolationLevel: 'Serializable' });
 }
