@@ -5,7 +5,7 @@ export const adminNavigationLinks = [
   { href: '/admin/planos', label: 'Planos' },
   { href: '/admin/financeiro', label: 'Financeiro' },
   { href: '/admin/relatorios', label: 'Relatórios' },
-  { href: '/admin/mensagens', label: 'Mensagens' },
+  { href: '/admin/remarcacoes', label: 'Remarcações' },
   { href: '/admin/chamada', label: 'Lista de chamada' },
 ];
 

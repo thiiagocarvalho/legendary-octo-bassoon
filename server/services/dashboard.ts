@@ -1,6 +1,5 @@
 import { prisma } from '../../lib/db';
 import { monthlyForecastCents, percentage } from './dashboard-metrics';
-import { latestDashboardMessages } from './dashboard-messages';
 
 function weekRange(date: Date) {
   const start = new Date(date); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
@@ -11,7 +10,7 @@ function weekRange(date: Date) {
 export async function getDashboard(now = new Date()) {
   const { start: weekStart, end: weekEnd } = weekRange(now);
   const frequencyStart = new Date(now); frequencyStart.setDate(now.getDate() - 28);
-  const [activeEnrollments, forecastEnrollments, paidInvoices, pendingInvoices, students, receivedPayments, upcoming, weeklyBookings, pastBookings, messages] = await Promise.all([
+  const [activeEnrollments, forecastEnrollments, paidInvoices, pendingInvoices, students, receivedPayments, upcoming, weeklyBookings, pastBookings] = await Promise.all([
     prisma.enrollment.findMany({ where: { status: 'ACTIVE' }, include: { student: { select: { id: true, fullName: true } } } }),
     prisma.enrollment.findMany({ where: { status: { not: 'CANCELED' } }, include: { plan: { select: { monthlyPriceCents: true } } } }),
     prisma.invoice.findMany({ where: { status: 'PAID', enrollment: { status: { not: 'CANCELED' } } }, select: { enrollmentId: true, referenceMonth: true } }),
@@ -21,7 +20,6 @@ export async function getDashboard(now = new Date()) {
     prisma.classOccurrence.findMany({ where: { startsAt: { gte: now, lt: weekEnd } }, include: { classSlot: true, bookings: { where: { status: { not: 'CANCELED' } } } } }),
     prisma.booking.findMany({ where: { status: { in: ['RESERVED', 'PRESENT'] }, occurrence: { startsAt: { gte: weekStart, lt: weekEnd } } }, select: { studentId: true } }),
     prisma.booking.findMany({ where: { occurrence: { startsAt: { gte: frequencyStart, lt: now } } }, select: { studentId: true, status: true } }),
-    prisma.studentMessage.findMany({ include: { student: { select: { fullName: true } } } }),
   ]);
   const limit = new Date(now); limit.setDate(now.getDate() + 7);
   const birthdays = students.filter((student: (typeof students)[number]) => { const birthday = new Date(now.getFullYear(), student.birthDate.getMonth(), student.birthDate.getDate()); return birthday >= now && birthday <= limit; }).map((student: (typeof students)[number]) => ({ id: student.id, fullName: student.fullName, birthDate: student.birthDate }));
@@ -42,5 +40,5 @@ export async function getDashboard(now = new Date()) {
     const cents = monthlyForecastCents(forecastEnrollments.filter((enrollment: (typeof forecastEnrollments)[number]) => !paidEnrollmentIds.has(enrollment.id)));
     return { label: month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), cents };
   });
-  return { activeStudents, pendingInvoices, birthdays, receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency, messages: latestDashboardMessages(messages) };
+  return { activeStudents, pendingInvoices, birthdays, receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
 }

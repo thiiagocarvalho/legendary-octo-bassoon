@@ -4,6 +4,8 @@ import { adminNavigationLinks, studentNavigationLinks } from '../../components/n
 describe('responsive navigation links', () => {
   it('keeps every administrative destination available in the mobile menu', () => {
     expect(adminNavigationLinks.map((item) => item.href)).toContain('/admin/chamada');
+    expect(adminNavigationLinks.map((item) => item.href)).toContain('/admin/remarcacoes');
+    expect(adminNavigationLinks.map((item) => item.href)).not.toContain('/admin/mensagens');
     expect(adminNavigationLinks).toHaveLength(8);
   });
 
