@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { BookingStatus } from '@prisma/client';
-import { requireAdmin } from '../../../../lib/auth';
+import { requireOperationalAccess } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/db';
 import { isAttendanceStatus } from '../../../../server/services/attendance';
 import { writeAuditLog } from '../../../../server/services/audit';
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireOperationalAccess();
   const { occurrenceId, studentId, status } = await request.json();
 
   if (!occurrenceId || !studentId || !isAttendanceStatus(status) || status === BookingStatus.CANCELED) {

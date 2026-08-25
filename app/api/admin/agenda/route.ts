@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '../../../../lib/auth';
+import { requireOperationalAccess } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/db';
 import { buildAttendanceRoster } from '../../../../server/services/attendance-roster';
 
 export async function GET() {
-  await requireAdmin();
+  await requireOperationalAccess();
   const occurrences = await prisma.classOccurrence.findMany({
     where: { startsAt: { gte: new Date() } },
     include: {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '../../../../../../lib/auth';
+import { requireOperationalAccess } from '../../../../../../lib/auth';
 import { prisma } from '../../../../../../lib/db';
 import { UnauthorizedError } from '../../../../../../lib/permissions';
 import { dayPairInput } from '../../../../../../lib/validation/schedule';
@@ -7,7 +7,7 @@ import { materializeOccurrences } from '../../../../../../server/services/occurr
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ classSlotId: string }> }) {
   try {
-    await requireAdmin();
+    await requireOperationalAccess();
     const { classSlotId } = await params;
     const pair = dayPairInput.parse(await request.json());
     const slot = await prisma.classSlot.findUniqueOrThrow({ where: { id: classSlotId } });
