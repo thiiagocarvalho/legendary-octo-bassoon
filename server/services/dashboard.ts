@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/db';
 import { monthlyForecastCents, percentage } from './dashboard-metrics';
 import { dashboardPaymentReminders } from './dashboard-payment-reminders';
+import { pilatesAnniversaries } from '../../lib/pilates-anniversaries';
 
 function weekRange(date: Date) {
   const start = new Date(date); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
@@ -11,9 +12,10 @@ function weekRange(date: Date) {
 export async function getDashboard(now = new Date(), { includeFinancial = true }: { includeFinancial?: boolean } = {}) {
   const { start: weekStart, end: weekEnd } = weekRange(now);
   const frequencyStart = new Date(now); frequencyStart.setDate(now.getDate() - 28);
-  const [activeEnrollments, students, upcoming, weeklyBookings, pastBookings] = await Promise.all([
+  const [activeEnrollments, students, enrollmentHistory, upcoming, weeklyBookings, pastBookings] = await Promise.all([
     prisma.enrollment.findMany({ where: { status: 'ACTIVE' }, include: { student: { select: { id: true, fullName: true } } } }),
     prisma.student.findMany({ select: { id: true, fullName: true, birthDate: true } }),
+    prisma.enrollment.findMany({ where: { student: { archivedAt: null } }, select: { studentId: true, startsAt: true, student: { select: { fullName: true } } } }),
     prisma.classOccurrence.findMany({ where: { startsAt: { gte: now, lt: weekEnd } }, include: { classSlot: true, bookings: { where: { status: { not: 'CANCELED' } } } } }),
     prisma.booking.findMany({ where: { status: { in: ['RESERVED', 'PRESENT'] }, occurrence: { startsAt: { gte: weekStart, lt: weekEnd } } }, select: { studentId: true } }),
     prisma.booking.findMany({ where: { occurrence: { startsAt: { gte: frequencyStart, lt: now } } }, select: { studentId: true, status: true } }),
@@ -21,6 +23,8 @@ export async function getDashboard(now = new Date(), { includeFinancial = true }
   const limit = new Date(now); limit.setDate(now.getDate() + 7);
   const birthdays = students.filter((student: (typeof students)[number]) => { const birthday = new Date(now.getFullYear(), student.birthDate.getMonth(), student.birthDate.getDate()); return birthday >= now && birthday <= limit; }).map((student: (typeof students)[number]) => ({ id: student.id, fullName: student.fullName, birthDate: student.birthDate }));
   const activeStudents = activeEnrollments.length;
+  const activeStudentIds = new Set(activeEnrollments.map((enrollment: (typeof activeEnrollments)[number]) => enrollment.studentId));
+  const studioAnniversaries = pilatesAnniversaries(enrollmentHistory.filter((enrollment: (typeof enrollmentHistory)[number]) => activeStudentIds.has(enrollment.studentId)).map((enrollment: (typeof enrollmentHistory)[number]) => ({ studentId: enrollment.studentId, fullName: enrollment.student.fullName, startedAt: enrollment.startsAt })), now);
   const studentsWithWeeklyBooking = new Set(weeklyBookings.map((booking: (typeof weeklyBookings)[number]) => booking.studentId));
   const studentsWithoutBooking = activeEnrollments.filter((enrollment: (typeof activeEnrollments)[number]) => !studentsWithWeeklyBooking.has(enrollment.studentId)).map((enrollment: (typeof activeEnrollments)[number]) => ({ id: enrollment.student.id, fullName: enrollment.student.fullName }));
   const presentByStudent = new Map<string, number>();
@@ -48,5 +52,5 @@ export async function getDashboard(now = new Date(), { includeFinancial = true }
     });
     financial = { pendingInvoices, receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts, reminders: dashboardPaymentReminders(reminderInvoices, now) };
   }
-  return { activeStudents, birthdays, financial, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
+  return { activeStudents, birthdays, studioAnniversaries, financial, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
 }
