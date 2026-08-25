@@ -75,6 +75,26 @@ export async function changeBooking(studentId: string, bookingId: string, target
   }, { isolationLevel: 'Serializable' });
 }
 
+export async function reportAbsenceAndCreateMakeup(studentId: string, bookingId: string, now = new Date()) {
+  return prisma.$transaction(async (tx: TransactionClient) => {
+    const current = await tx.booking.findFirst({ where: { id: bookingId, studentId }, include: { occurrence: true } });
+    if (!current || current.status === BookingStatus.CANCELED) throw new BookingError('ALREADY_BOOKED');
+    if (!canChangeBooking(now, current.occurrence.startsAt)) throw new BookingError('CHANGE_WINDOW_CLOSED');
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const changesThisMonth = await tx.auditLog.count({ where: { actorId: studentId, action: 'BOOKING_CHANGED', createdAt: { gte: monthStart, lt: nextMonthStart } } });
+    const monthlyChangeDecision = monthlyBookingChangeDecision(changesThisMonth);
+    if (!monthlyChangeDecision.allowed) throw new BookingError(monthlyChangeDecision.code);
+
+    await tx.booking.update({ where: { id: current.id }, data: { status: BookingStatus.CANCELED } });
+    const credit = await tx.makeupCredit.create({ data: { studentId, sourceBookingId: current.id } });
+    await tx.auditLog.create({ data: { actorId: studentId, action: 'BOOKING_CHANGED', entity: 'Booking', entityId: current.id, reason: `Falta avisada para ${current.occurrence.startsAt.toISOString()}` } });
+    await tx.studentMessage.create({ data: { studentId, content: `Remarcação de aula: falta avisada para ${current.occurrence.startsAt.toLocaleString('pt-BR')}. Vaga liberada e reposição disponível.` } });
+    return credit;
+  }, { isolationLevel: 'Serializable' });
+}
+
 export async function cancelBooking(studentId: string, bookingId: string, now = new Date()) {
   const booking = await prisma.booking.findFirst({ where: { id: bookingId, studentId }, include: { occurrence: true } });
   if (!booking || booking.status === BookingStatus.CANCELED) throw new BookingError('ALREADY_BOOKED');

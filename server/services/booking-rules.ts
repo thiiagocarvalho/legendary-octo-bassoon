@@ -1,4 +1,4 @@
-const CHANGE_WINDOW_MS = 2 * 60 * 60 * 1000;
+const CHANGE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export function canReserveInWeek(currentReservations: number, weeklyLimit: number) {
   return currentReservations < weeklyLimit;
