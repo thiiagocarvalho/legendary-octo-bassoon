@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/db';
 import { monthlyForecastCents, percentage } from './dashboard-metrics';
+import { dashboardPaymentReminders } from './dashboard-payment-reminders';
 
 function weekRange(date: Date) {
   const start = new Date(date); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
@@ -30,20 +31,22 @@ export async function getDashboard(now = new Date(), { includeFinancial = true }
   const reservedSeats = upcoming.reduce((sum: number, occurrence: (typeof upcoming)[number]) => sum + occurrence.bookings.length, 0);
   const attended = [...presentByStudent.values()].reduce((sum: number, value: number) => sum + value, 0);
   const scheduled = [...registeredByStudent.values()].reduce((sum: number, value: number) => sum + value, 0);
-  let financial: { pendingInvoices: number; receivedCents: number; monthlyForecasts: { label: string; cents: number }[] } | null = null;
+  let financial: { pendingInvoices: number; receivedCents: number; monthlyForecasts: { label: string; cents: number }[]; reminders: ReturnType<typeof dashboardPaymentReminders> } | null = null;
   if (includeFinancial) {
-    const [forecastEnrollments, paidInvoices, receivedPayments, pendingInvoices] = await Promise.all([
+    const reminderLimit = new Date(now); reminderLimit.setDate(reminderLimit.getDate() + 1); reminderLimit.setHours(23, 59, 59, 999);
+    const [forecastEnrollments, paidInvoices, receivedPayments, pendingInvoices, reminderInvoices] = await Promise.all([
       prisma.enrollment.findMany({ where: { status: { not: 'CANCELED' } }, include: { plan: { select: { monthlyPriceCents: true } } } }),
       prisma.invoice.findMany({ where: { status: 'PAID', enrollment: { status: { not: 'CANCELED' } } }, select: { enrollmentId: true, referenceMonth: true } }),
       prisma.manualPayment.aggregate({ _sum: { amountCents: true } }),
       prisma.invoice.count({ where: { status: { in: ['PENDING', 'OVERDUE'] } } }),
+      prisma.invoice.findMany({ where: { status: { in: ['PENDING', 'OVERDUE'] }, dueDate: { lte: reminderLimit } }, include: { enrollment: { include: { student: { select: { fullName: true, phone: true } } } } }, orderBy: { dueDate: 'asc' } }),
     ]);
     const monthlyForecasts = [0, 1, 2].map((offset: number) => {
       const month = new Date(now.getFullYear(), now.getMonth() + offset, 1);
       const paidEnrollmentIds = new Set(paidInvoices.filter((invoice: (typeof paidInvoices)[number]) => invoice.referenceMonth.getUTCFullYear() === month.getUTCFullYear() && invoice.referenceMonth.getUTCMonth() === month.getUTCMonth()).map((invoice: (typeof paidInvoices)[number]) => invoice.enrollmentId));
       return { label: month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), cents: monthlyForecastCents(forecastEnrollments.filter((enrollment: (typeof forecastEnrollments)[number]) => !paidEnrollmentIds.has(enrollment.id))) };
     });
-    financial = { pendingInvoices, receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts };
+    financial = { pendingInvoices, receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts, reminders: dashboardPaymentReminders(reminderInvoices, now) };
   }
   return { activeStudents, birthdays, financial, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
 }
