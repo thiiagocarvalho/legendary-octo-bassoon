@@ -4,9 +4,10 @@ import { canBookClass, canChangeBooking, canSwapBooking } from './booking-rules'
 import { consumeMakeupCredit } from './makeup-credits';
 import { makeupBookingDecision } from './makeup-credit-rules';
 import { bookingChangeNotification } from './booking-change-notification';
+import { monthlyBookingChangeDecision } from './monthly-booking-change-limit';
 
 export class BookingError extends Error {
-  constructor(public code: 'ENROLLMENT_INACTIVE' | 'CLASS_FULL' | 'WEEKLY_LIMIT_REACHED' | 'CHANGE_WINDOW_CLOSED' | 'ALREADY_BOOKED' | 'NO_MAKEUP_CREDIT') { super(code); }
+  constructor(public code: 'ENROLLMENT_INACTIVE' | 'CLASS_FULL' | 'WEEKLY_LIMIT_REACHED' | 'CHANGE_WINDOW_CLOSED' | 'ALREADY_BOOKED' | 'NO_MAKEUP_CREDIT' | 'MONTHLY_CHANGE_LIMIT_REACHED') { super(code); }
 }
 
 function weekRange(date: Date) {
@@ -46,6 +47,11 @@ export async function changeBooking(studentId: string, bookingId: string, target
     if (!target) throw new BookingError('CLASS_FULL');
     if (!enrollment) throw new BookingError('ENROLLMENT_INACTIVE');
     if (!canSwapBooking(now, current.occurrence.startsAt, target.startsAt)) throw new BookingError('CHANGE_WINDOW_CLOSED');
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const changesThisMonth = await tx.auditLog.count({ where: { actorId: studentId, action: 'BOOKING_CHANGED', createdAt: { gte: monthStart, lt: nextMonthStart } } });
+    const monthlyChangeDecision = monthlyBookingChangeDecision(changesThisMonth);
+    if (!monthlyChangeDecision.allowed) throw new BookingError(monthlyChangeDecision.code);
 
     const { start, end } = weekRange(target.startsAt);
     const [occupied, weeklyReservations, targetBooking] = await Promise.all([
@@ -63,6 +69,7 @@ export async function changeBooking(studentId: string, bookingId: string, target
       ? await tx.booking.update({ where: { id: targetBooking.id }, data: { status: BookingStatus.RESERVED } })
       : await tx.booking.create({ data: { studentId, occurrenceId: target.id } });
     await tx.booking.update({ where: { id: current.id }, data: { status: BookingStatus.CANCELED } });
+    await tx.auditLog.create({ data: { actorId: studentId, action: 'BOOKING_CHANGED', entity: 'Booking', entityId: replacement.id, reason: `Troca de ${current.occurrence.startsAt.toISOString()} para ${target.startsAt.toISOString()}` } });
     await tx.studentMessage.create({ data: { studentId, content: bookingChangeNotification(current.occurrence.startsAt, target.startsAt) } });
     return replacement;
   }, { isolationLevel: 'Serializable' });
