@@ -3,7 +3,7 @@ import type { NextAuthOptions } from 'next-auth';
 import { getServerSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './db';
-import { requireRole, type SessionUser } from './permissions';
+import { requireFinancialAccess as requireFinancialRole, requireOperationalAccess as requireOperationalRole, requireRole, type SessionUser } from './permissions';
 
 type TokenWithRole = {
   sub?: string;
@@ -78,7 +78,15 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 }
 
 export async function requireAdmin() {
-  return requireRole(await getSessionUser(), 'ADMIN');
+  return requireFinancialRole(await getSessionUser());
+}
+
+export async function requireOperationalAccess() {
+  return requireOperationalRole(await getSessionUser());
+}
+
+export async function requireFinancialAccess() {
+  return requireFinancialRole(await getSessionUser());
 }
 
 export async function requireStudent() {

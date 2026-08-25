@@ -1,6 +1,6 @@
 export type SessionUser = {
   id: string;
-  role: 'ADMIN' | 'STUDENT';
+  role: 'ADMIN' | 'EMPLOYEE' | 'STUDENT';
   studentId?: string;
 };
 
@@ -21,4 +21,13 @@ export function requireRole(user: SessionUser | null, role: SessionUser['role'])
   }
 
   return user;
+}
+
+export function requireOperationalAccess(user: SessionUser | null) {
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'EMPLOYEE')) throw new UnauthorizedError();
+  return user;
+}
+
+export function requireFinancialAccess(user: SessionUser | null) {
+  return requireRole(user, 'ADMIN');
 }
