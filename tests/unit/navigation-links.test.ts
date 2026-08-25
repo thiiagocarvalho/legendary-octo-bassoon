@@ -6,7 +6,7 @@ describe('responsive navigation links', () => {
     expect(adminNavigationLinks.map((item) => item.href)).toContain('/admin/chamada');
     expect(adminNavigationLinks.map((item) => item.href)).toContain('/admin/remarcacoes');
     expect(adminNavigationLinks.map((item) => item.href)).not.toContain('/admin/mensagens');
-    expect(adminNavigationLinks).toHaveLength(8);
+    expect(adminNavigationLinks).toHaveLength(9);
   });
 
   it('keeps the student app navigation simple', () => {
