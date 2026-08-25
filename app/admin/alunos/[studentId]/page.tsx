@@ -6,8 +6,11 @@ import { EnrollmentForm } from '../../../../components/students/enrollment-form'
 import { HealthProfileForm } from '../../../../components/students/health-profile-form';
 import { ProgressForm } from '../../../../components/students/progress-form';
 import { attendanceSummary } from '../../../../lib/student-operation-summary';
+import { getSessionUser } from '../../../../lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ studentId: string }> }) {
+  if ((await getSessionUser())?.role !== 'ADMIN') redirect('/admin/alunos');
   const { studentId } = await params;
   const [student, plans, history] = await Promise.all([
     prisma.student.findUnique({ where: { id: studentId }, include: { user: true, health: true, enrollments: { include: { plan: true }, orderBy: { startsAt: 'desc' } }, progress: { orderBy: { createdAt: 'desc' } }, bookings: { select: { status: true } }, makeupCredits: true } }),

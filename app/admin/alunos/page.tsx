@@ -1,8 +1,14 @@
 import Link from 'next/link';
 import { prisma } from '../../../lib/db';
 import { StudentForm } from '../../../components/students/student-form';
+import { getSessionUser } from '../../../lib/auth';
 
 export default async function StudentsPage() {
+  const user = await getSessionUser();
+  if (user?.role === 'EMPLOYEE') {
+    const students = await prisma.student.findMany({ where: { archivedAt: null }, orderBy: { fullName: 'asc' }, select: { id: true, fullName: true, phone: true, birthDate: true } });
+    return <section className="grid gap-6"><div><p className="text-sm font-semibold text-emerald-700">Cadastro</p><h1 className="text-3xl font-bold">Alunos</h1><p className="mt-2 text-slate-600">Lista operacional de alunos.</p></div><div className="overflow-hidden rounded-xl border bg-white">{students.length ? students.map((student) => <article className="border-b p-4 last:border-0" key={student.id}><strong>{student.fullName}</strong><p className="text-sm text-slate-600">{student.phone}</p></article>) : <p className="p-5 text-slate-600">Nenhum aluno cadastrado ainda.</p>}</div></section>;
+  }
   const [students, plans, classSlots] = await Promise.all([prisma.student.findMany({ where: { archivedAt: null }, orderBy: { fullName: 'asc' }, include: { enrollments: { where: { status: { not: 'CANCELED' } }, include: { plan: true, invoices: { where: { status: { in: ['PENDING', 'OVERDUE'] } }, orderBy: { dueDate: 'asc' }, take: 1 } }, orderBy: { startsAt: 'desc' }, take: 1 } } }), prisma.plan.findMany({ orderBy: { name: 'asc' } }), prisma.classSlot.findMany({ orderBy: [{ weekday: 'asc' }, { startsTime: 'asc' }] })]);
 
   return <section className="grid gap-6">

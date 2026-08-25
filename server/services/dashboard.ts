@@ -10,9 +10,8 @@ function weekRange(date: Date) {
 export async function getDashboard(now = new Date(), { includeFinancial = true }: { includeFinancial?: boolean } = {}) {
   const { start: weekStart, end: weekEnd } = weekRange(now);
   const frequencyStart = new Date(now); frequencyStart.setDate(now.getDate() - 28);
-  const [activeEnrollments, pendingInvoices, students, upcoming, weeklyBookings, pastBookings] = await Promise.all([
+  const [activeEnrollments, students, upcoming, weeklyBookings, pastBookings] = await Promise.all([
     prisma.enrollment.findMany({ where: { status: 'ACTIVE' }, include: { student: { select: { id: true, fullName: true } } } }),
-    prisma.invoice.count({ where: { status: { in: ['PENDING', 'OVERDUE'] } } }),
     prisma.student.findMany({ select: { id: true, fullName: true, birthDate: true } }),
     prisma.classOccurrence.findMany({ where: { startsAt: { gte: now, lt: weekEnd } }, include: { classSlot: true, bookings: { where: { status: { not: 'CANCELED' } } } } }),
     prisma.booking.findMany({ where: { status: { in: ['RESERVED', 'PRESENT'] }, occurrence: { startsAt: { gte: weekStart, lt: weekEnd } } }, select: { studentId: true } }),
@@ -31,19 +30,20 @@ export async function getDashboard(now = new Date(), { includeFinancial = true }
   const reservedSeats = upcoming.reduce((sum: number, occurrence: (typeof upcoming)[number]) => sum + occurrence.bookings.length, 0);
   const attended = [...presentByStudent.values()].reduce((sum: number, value: number) => sum + value, 0);
   const scheduled = [...registeredByStudent.values()].reduce((sum: number, value: number) => sum + value, 0);
-  let financial: { receivedCents: number; monthlyForecasts: { label: string; cents: number }[] } | null = null;
+  let financial: { pendingInvoices: number; receivedCents: number; monthlyForecasts: { label: string; cents: number }[] } | null = null;
   if (includeFinancial) {
-    const [forecastEnrollments, paidInvoices, receivedPayments] = await Promise.all([
+    const [forecastEnrollments, paidInvoices, receivedPayments, pendingInvoices] = await Promise.all([
       prisma.enrollment.findMany({ where: { status: { not: 'CANCELED' } }, include: { plan: { select: { monthlyPriceCents: true } } } }),
       prisma.invoice.findMany({ where: { status: 'PAID', enrollment: { status: { not: 'CANCELED' } } }, select: { enrollmentId: true, referenceMonth: true } }),
       prisma.manualPayment.aggregate({ _sum: { amountCents: true } }),
+      prisma.invoice.count({ where: { status: { in: ['PENDING', 'OVERDUE'] } } }),
     ]);
     const monthlyForecasts = [0, 1, 2].map((offset: number) => {
       const month = new Date(now.getFullYear(), now.getMonth() + offset, 1);
       const paidEnrollmentIds = new Set(paidInvoices.filter((invoice: (typeof paidInvoices)[number]) => invoice.referenceMonth.getUTCFullYear() === month.getUTCFullYear() && invoice.referenceMonth.getUTCMonth() === month.getUTCMonth()).map((invoice: (typeof paidInvoices)[number]) => invoice.enrollmentId));
       return { label: month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), cents: monthlyForecastCents(forecastEnrollments.filter((enrollment: (typeof forecastEnrollments)[number]) => !paidEnrollmentIds.has(enrollment.id))) };
     });
-    financial = { receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts };
+    financial = { pendingInvoices, receivedCents: receivedPayments._sum.amountCents ?? 0, monthlyForecasts };
   }
-  return { activeStudents, pendingInvoices, birthdays, financial, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
+  return { activeStudents, birthdays, financial, occupancyPercent: percentage(reservedSeats, totalSeats), attendancePercent: percentage(attended, scheduled), studentsWithoutBooking, lowFrequency };
 }

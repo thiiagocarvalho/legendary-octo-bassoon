@@ -1,8 +1,11 @@
 import { prisma } from '../../../lib/db';
+import { getSessionUser } from '../../../lib/auth';
+import { redirect } from 'next/navigation';
 
 type AttendanceRow = { name: string; present: number; absent: number };
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
+  if ((await getSessionUser())?.role !== 'ADMIN') redirect('/admin');
   const { mes } = await searchParams;
   const selected = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : new Date().toISOString().slice(0, 7);
   const [year, month] = selected.split('-').map(Number);
